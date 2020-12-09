@@ -16,7 +16,7 @@ def getpsf(image,xc,yc,
            apmag,sky,ronois,
            phpadu,idpsf,psfrad,
            fitrad,psfname, zeropoint=0,
-           debug = False,verbose=True):
+           maxiter=100,debug = False,verbose=True,ifonestar=False):
     """Generates a point-spread function (PSF) from observed stars. 
 
     The PSF is represented as a 2-dimensional Gaussian
@@ -210,11 +210,11 @@ def getpsf(image,xc,yc,
         if debug: print('GETPSF: Gaussian Fit Iteration')
 
         niterflag=False
-        for i in range(102):		     #Begin the iterative loop
+        for i in range(maxiter+2):		     #Begin the iterative loop
 
             niter = niter + 1
-            if niter > 100:   #No convergence after 100 iterations?
-                print('No convergence after 100 iterations for star ' + str(istar))
+            if niter > maxiter:   #No convergence after 100 iterations?
+                print('No convergence after '+str(maxiter)+' iterations for star ' + str(istar))
                 gauss=np.array([-1,-1,-1,-1,-1])
                 niterflag=True
                 if nstrps >= numpsf-1:
@@ -412,10 +412,11 @@ def getpsf(image,xc,yc,
     if type(goodstar) == np.int:
         goodstarlen = 1
         hdu.header['PSFID'] = goodstar
-        print('Warning: Only one valid PSF star')
+        if ifonestar:
+            print('Warning: Only one valid PSF star')
         hdu.header['NSTARS'] = goodstarlen #, '# of Stars Used to Create PSF'
         hdu.data = psf
-        hdu.writeto(psfname,clobber=True)
+        hdu.writeto(psfname,overwrite=True)
         return(gauss,psf,psfmag)
 
     else: 
@@ -423,7 +424,7 @@ def getpsf(image,xc,yc,
         hdu.header['PSFID'] = goodstar[-1]
         hdu.header['NSTARS'] = goodstarlen #, '# of Stars Used to Create PSF'
         hdu.data = psf
-        hdu.writeto(psfname,clobber=True)
+        hdu.writeto(psfname,overwrite=True)
         return(gauss,psf,psfmag)
 
 

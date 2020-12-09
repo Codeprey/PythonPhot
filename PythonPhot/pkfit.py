@@ -170,9 +170,15 @@ class pkfit_class:
             if ixlo < 0: ixlo = 0       #Choose boundaries of subarray containing
             iylo = int(y-radius)
             if iylo < 0: iylo = 0       # 3points inside the fitting radius
-            ixhi = int(x+radius) +1 
+            if int(x+radius)==x+radius:
+                ixhi = int(x+radius)
+            else:
+                ixhi = int(x+radius) +1
             if ixhi > (nx-1): ixhi = nx-1
-            iyhi = int(y+radius) +1
+            if int(y+radius)==y+radius:
+                iyhi = int(y+radius)
+            else:
+                iyhi = int(y+radius) +1
             if iyhi > ny-1: iyhi = ny-1
             ixx  = ixhi-ixlo+1
             iyy  = iyhi-iylo+1
@@ -199,15 +205,16 @@ class pkfit_class:
             # a two-dimensional Gaussian profile plus a value interpolated from
             # a look-up table.
 
-            good = where(rsq < 1.)
-            if fnoise:
-                good = good[where(fnoise[iylo:iyhi+1,ixlo:ixhi+1] > 0)]
-            if fmask:
-                good = good[where(fmask[iylo:iyhi+1,ixlo:ixhi+1] == 0)]
+            if isinstance(fnoise,np.ndarray):
+                if isinstance(fmask,np.ndarray):
+                    good = where((rsq < 1.) & (fnoise[iylo:iyhi+1,ixlo:ixhi+1] > 0) & (fmask[iylo:iyhi+1,ixlo:ixhi+1] == 0))
+                else:
+                    good = where((rsq < 1.) & (fnoise[iylo:iyhi+1,ixlo:ixhi+1] > 0))
+            else:
+                good = where(rsq < 1.)
 
             ngood = len(good[0])
             if ngood < 1: ngood = 1
-        
             t = zeros([3,ngood])
 
             if not len(good[0]):
@@ -248,7 +255,7 @@ class pkfit_class:
             fsub = f[iylo:iyhi+1,ixlo:ixhi+1]
 
             fsub = fsub[good[0],good[1]]
-            if fnoise:
+            if isinstance(fnoise,np.ndarray):
                 # D. Jones - noise addition from Scolnic
                 fsubnoise=fnoise[iylo:iyhi+1,ixlo:ixhi+1]
                 fsubnoise = fsubnoise[good[0],good[1]]
@@ -277,7 +284,7 @@ class pkfit_class:
             # error to this quantity is estimated from a good-seeing CTIO frame to
             # be approximately 0.027 (see definition of PKERR above.)
         
-            if not fnoise:
+            if not isinstance(fnoise,np.ndarray):
                 fpos = (fsub-df)   #Raw data - residual = model predicted intensity
                 fposrow = where(fpos < 0.)[0]
                 if len(fposrow): fpos[fposrow] = 0
@@ -311,7 +318,7 @@ class pkfit_class:
 
                 if nbad > 0:
                     fsub = item_remove(badpix, fsub)
-                    if fnoise:
+                    if isinstance(fnoise,np.ndarray):
                         fsubnoise = item_remove(badpix, fsubnoise)
                     df = item_remove(badpix,df)
                     sigsq = item_remove(badpix,sigsq)
@@ -337,7 +344,7 @@ class pkfit_class:
             rhosq[lilrho] = 0.5*rhosq[lilrho]
             dfdsig = exp(-rhosq[lilrho])*(rhosq[lilrho]-1.)
 
-            if not fnoise:
+            if not isinstance(fnoise,np.ndarray):
                 # FPOS-SKY = raw data minus sky = estimated value of the stellar
                 # intensity (which presumably is non-negative).
                 fpos = fsub[lilrho]
@@ -438,7 +445,7 @@ class pkfit_class:
         
             sharp = 2.*gauss[3]*gauss[4]*numer/(gauss[0]*scale*denom)
             errmag = chiold*sqrt(c[0,0])
-            if ( adt[0] > max(0.05*errmag,0.001*scale)): redo = 1
+            if (adt[0] > max(0.05*errmag,0.001*scale)): redo = 1
             if (adt[1] > 0.01) or (adt[2] > 0.01): redo = 1
 
             if debug: print(niter,x,y,scale,errmag,chiold,sharp)
@@ -458,9 +465,7 @@ class pkfit_class:
             return(errmag,chi,sharp,niter,scale)
 
 def item_remove(index,array):
-
     mask = ones(array.shape,dtype=bool)
     mask[index] = False
     smaller_array = array[mask]
-
     return(smaller_array)
